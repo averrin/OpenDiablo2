@@ -27,6 +27,7 @@ type MapEngineTest struct {
 	gameState     *d2core.GameState
 	mapEngine     *_map.Engine
 	currentRegion int
+	levelPreset int
 	keyLocked     bool
 }
 
@@ -35,50 +36,32 @@ func CreateMapEngineTest(
 	sceneProvider d2interface.SceneProvider,
 	uiManager *d2ui.Manager,
 	soundManager *d2audio.Manager,
-	currentRegion int) *MapEngineTest {
+	currentRegion int, levelPreset int) *MapEngineTest {
 	result := &MapEngineTest{
 		fileProvider:  fileProvider,
 		uiManager:     uiManager,
 		soundManager:  soundManager,
 		sceneProvider: sceneProvider,
 		currentRegion: currentRegion,
+		levelPreset: levelPreset,
 		keyLocked:     false,
 	}
 	result.gameState = d2core.CreateTestGameState()
 	return result
 }
 
-type RegionSpec struct {
-	regionType  d2enum.RegionIdType
-	levelPreset int
-}
-
-var regions []RegionSpec = []RegionSpec{
-	{d2enum.RegionAct1Tristram, 300},
-	{d2enum.RegionAct1Cathedral, 257},
-	{d2enum.RegionAct2Town, 301},
-	// {d2enum.RegionAct2Harem, 353},
-	{d2enum.RegionAct3Town, 529},
-	{d2enum.RegionAct3Jungle, 574},
-	{d2enum.RegionAct4Town, 797},
-	{d2enum.RegonAct5Town, 863},
-	{d2enum.RegionAct5IceCaves, 1038},
-	{d2enum.RegionAct5Siege, 879},
-	{d2enum.RegionAct5Lava, 105},
-	{d2enum.RegionAct5Barricade, 880},
-}
-
-func (v *MapEngineTest) LoadRegionByIndex(n int) {
+func (v *MapEngineTest) LoadRegionByIndex(n int, levelPreset int) {
 	if n == 0 {
 		v.mapEngine.GenerateAct1Overworld()
 		return
 	}
-	region := regions[n-1]
+	// region := regions[n-1]
 
 	v.mapEngine = _map.CreateMapEngine(v.gameState, v.soundManager, v.fileProvider) // necessary for map name update
 	v.mapEngine.OffsetY = 0
 	v.mapEngine.OffsetX = 0
-	v.mapEngine.GenerateMap(region.regionType, region.levelPreset)
+	// v.mapEngine.GenerateMap(region.regionType, region.levelPreset)
+	v.mapEngine.GenerateMap(d2enum.RegionIdType(n), levelPreset)
 }
 
 func (v *MapEngineTest) Load() []func() {
@@ -89,7 +72,7 @@ func (v *MapEngineTest) Load() []func() {
 		func() {
 			v.mapEngine = _map.CreateMapEngine(v.gameState, v.soundManager, v.fileProvider)
 
-			v.LoadRegionByIndex(v.currentRegion)
+			v.LoadRegionByIndex(v.currentRegion, v.levelPreset)
 			// v.mapEngine.GenerateAct1Overworld()
 			// v.mapEngine.GenerateMap(d2enum.RegionAct1Tristram, 300)
 			// v.mapEngine.GenerateMap(d2enum.RegionAct1Cathedral, 257)
@@ -133,7 +116,7 @@ func (v *MapEngineTest) Render(screen *ebiten.Image) {
 	)
 	ebitenutil.DebugPrintAt(screen, line, 5, 5)
 	ebitenutil.DebugPrintAt(screen, "Map: "+curRegion.Region.LevelType.Name, 5, 17)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("%v [%v]", curRegion.Region.RegionPath, v.currentRegion), 5, 29)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("%v [%v, %v]", curRegion.Region.RegionPath, v.currentRegion, v.levelPreset), 5, 29)
 	ebitenutil.DebugPrintAt(screen, "N - next map, P - previous map", 5, 41)
 }
 
@@ -155,7 +138,7 @@ func (v *MapEngineTest) Update(tickTime float64) {
 	}
 	if v.uiManager.KeyPressed(ebiten.KeyN) && !v.keyLocked {
 		v.currentRegion++
-		if v.currentRegion == len(regions) {
+		if v.currentRegion == 36 {
 			v.currentRegion = 0
 		}
 		v.keyLocked = true
@@ -167,7 +150,7 @@ func (v *MapEngineTest) Update(tickTime float64) {
 	if v.uiManager.KeyPressed(ebiten.KeyP) && !v.keyLocked {
 		v.currentRegion--
 		if v.currentRegion == -1 {
-			v.currentRegion = len(regions) - 1
+			v.currentRegion = 35
 		}
 		v.keyLocked = true
 		fmt.Println("---")
